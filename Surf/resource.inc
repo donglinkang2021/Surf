@@ -1,0 +1,10 @@
+.const
+    IDI_ICON1 equ 101
+    IDB_BACK equ 102
+    IDB_WATER equ 103
+    IDB_PLAYER64 equ 104
+    IDB_PLAYERM64 equ 105
+    IDB_SURFB64 equ 106
+    IDB_SURFBM64 equ 107
+    IDB_SLOWD64 equ 108
+    IDB_SLOWDM64 equ 109
