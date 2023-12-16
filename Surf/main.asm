@@ -653,11 +653,11 @@ rand	proto C
 		invoke GetRandom, 0, 17
 		shl eax, 6
 		.if surfer.action == 3
-			mov ecx, -240
+			mov ecx, 16
 		.elseif surfer.action == 1 || surfer.action == 2
-			mov ecx, -752
+			mov ecx, -496
 		.elseif surfer.action == 4 || surfer.action == 5
-			mov ecx, 272
+			mov ecx, 528
 		.endif
 		add ecx, eax
 		mov eax, ecx
@@ -1140,9 +1140,9 @@ rand	proto C
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
 			; invoke RenderTest
 			invoke RenderWater
-			; invoke RenderAmbient
-			; invoke RenderSlowd
-			; invoke RenderInteract
+			invoke RenderAmbient
+			invoke RenderSlowd
+			invoke RenderInteract
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -1153,23 +1153,23 @@ rand	proto C
 
 			invoke UpdateWater
 
-			; invoke GenerateSlowD
-			; invoke UpdateSlowD
-			; .if slowdCount > 2
-			; 	invoke RecycleSlowd
-			; .endif
+			invoke GenerateSlowD
+			invoke UpdateSlowD
+			.if slowdCount > 2
+				invoke RecycleSlowd
+			.endif
 
-			; invoke GenerateAmbient
-			; invoke UpdateAmbient
-			; .if ambiCount > 1
-			; 	invoke RecycleAmbient
-			; .endif
+			invoke GenerateAmbient
+			invoke UpdateAmbient
+			.if ambiCount > 1
+				invoke RecycleAmbient
+			.endif
 
-			; invoke GenerateInteract
-			; invoke UpdateInteract
-			; .if interCount > 1
-			; 	invoke RecycleInteract
-			; .endif
+			invoke GenerateInteract
+			invoke UpdateInteract
+			.if interCount > 1
+				invoke RecycleInteract
+			.endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
