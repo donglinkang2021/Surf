@@ -18,6 +18,7 @@ include resource.inc
 .data
 	stRect RECT <0,0,0,0>;客户窗口的大小，right代表长，bottom代表高
 	freshTime dword 16		;刷新时间，以毫秒为单位 帧率60
+	aniTimer dword 0		;动画计时器，用于控制动画的刷新速度
 
 	itemsCount dd 0	;当前已经加载的图片的数量
 
@@ -310,6 +311,41 @@ include resource.inc
 	PlayerAction ENDP
 
 	;------------------------------------------
+	; UpdateAniTimer - 更新动画的计时器
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateAniTimer PROC uses eax ebx ecx edx esi edi 
+		inc aniTimer
+		mov eax, aniTimer
+		mov edx, 0    ; 清零edx，因为div指令会使用edx:eax作为被除数
+		mov ecx, 24    ; 放入ecx，作为除数
+		div ecx       ; 执行除法操作，eax = edx:eax / ecx，edx = edx:eax % ecx
+		mov aniTimer, edx  ; 将余数（%结果）放回surfBtimer
+		xor eax, eax
+		ret
+	UpdateAniTimer ENDP
+
+	;------------------------------------------
+	; UpdateSurfBoard - 更新surfB的句柄
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateSurfBoard PROC uses eax ebx ecx edx esi edi 
+		mov eax, surfer.surfBframe
+		.if aniTimer == 0
+			mov eax, 0
+		.elseif aniTimer == 8
+			mov eax, 1
+		.elseif aniTimer == 16
+			mov eax, 2
+		.endif
+		mov surfer.surfBframe, eax
+		xor eax, eax
+		ret
+	UpdateSurfBoard ENDP
+
+	;------------------------------------------
 	; WndProc - Window procedure
 	; @param hWnd:HWND
 	; @param uMsg:UINT
@@ -335,6 +371,8 @@ include resource.inc
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
 			invoke InvalidateRect,hWnd,NULL,FALSE
+			invoke UpdateAniTimer
+			invoke UpdateSurfBoard
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
