@@ -69,6 +69,11 @@ rand	proto C
 	slowdInterval dd 20 ; 最开始时的生成间隔，80差不多应该，之后的生成间隔为随机数
 	MAXSLOWD dd 8 ; 最多生成的slowdown的数量
 
+	; 记录生成的ambient的数量
+	ambiCount dd 0
+	ambiInterval dd 20 ; 最开始时的生成间隔，40差不多应该，之后的生成间隔为随机数
+	MAXAMBI dd 8 ; 最多生成的ambient的数量
+
 .data?
 	hInstance dword ? 	;程序的句柄
 	hWinMain dword ?	;窗体的句柄
@@ -110,6 +115,16 @@ rand	proto C
 		frame dd ?		; 0~2  3个frame可以选择
 	Slowdown ends
 	slowd Slowdown 10 dup(<?,?,?,?,?,?>) 
+
+	Ambient struct
+		x dd ?			; 初始在屏幕中的x位置
+		y dd ?			; 初始在屏幕中的y位置
+		w dd ? 			; 在屏幕中绘制的w
+		h dd ? 			; 在屏幕中绘制的h
+		tp dd ?			; 0~3 4个类型可以选择
+		frame dd ?		; 0~5 6个frame可以选择
+	Ambient ends
+	ambi Ambient 10 dup(<?,?,?,?,?,?>)
 	
 .code
 
@@ -686,6 +701,148 @@ rand	proto C
 	RecycleSlowd ENDP
 
 	;------------------------------------------
+	; GenerateAmbient - 生成ambient
+	; @param
+	; @return void
+	;------------------------------------------
+	GenerateAmbient PROC uses eax ebx ecx edx esi edi
+		mov eax, ambiCount
+		cmp eax, MAXAMBI
+		jg GenerateAmbientRet
+		cmp ambiInterval, 0
+		jne GenerateAmbientEnd
+		; 获得最新的一个Ambient
+		mov edi, offset ambi
+		mov esi, ambiCount
+		imul esi, TYPE Ambient
+		add edi, esi
+
+		; 生成一个ambient
+		invoke GetRandPosX
+		mov (Ambient PTR [edi]).x, eax
+		mov eax, 700
+		mov (Ambient PTR [edi]).y, eax
+		mov eax, 64
+		mov (Ambient PTR [edi]).w, eax
+		mov eax, 64
+		mov (Ambient PTR [edi]).h, eax
+		invoke GetRandom, 0, 3
+		mov (Ambient PTR [edi]).tp, eax
+		invoke GetRandom, 0, 5
+		mov (Ambient PTR [edi]).frame, eax
+		inc ambiCount
+
+		invoke GetRandom, 20, 30
+		mov ambiInterval, eax
+		GenerateAmbientEnd:
+			dec ambiInterval
+		GenerateAmbientRet:
+			xor eax,eax
+			ret
+	GenerateAmbient ENDP
+
+	;------------------------------------------
+	; UpdateAmbient - 更新ambient的位置
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateAmbient PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset ambi
+		mov esi, 0
+		.while esi < ambiCount
+			mov eax, (Ambient PTR [edi]).x
+			mov ecx, (Ambient PTR [edi]).y
+			add eax, speed.x
+			add ecx, speed.y
+			mov (Ambient PTR [edi]).x, eax
+			mov (Ambient PTR [edi]).y, ecx
+
+			; if aniTimer % 4 == 0  frame++ 
+			; else 等于之前的帧
+
+			mov ecx, (Ambient PTR [edi]).frame
+			mov edx, 0			;被除数的高32位
+			mov eax, aniTimer 	;被除数的低32位
+			; cmp eax, 12
+			; jg UpdateAmbientEnd
+			mov ebx, 4			;除数
+			div ebx
+			cmp edx, 0
+			jne UpdateAmbientEnd
+			inc ecx
+			cmp ecx, 6
+			jl UpdateAmbientEnd
+			mov ecx, 0
+			UpdateAmbientEnd:		
+
+			mov (Ambient PTR [edi]).frame, ecx
+			add edi, TYPE Ambient
+			inc esi
+		.endw
+		xor eax, eax
+		ret
+	UpdateAmbient ENDP
+
+	;------------------------------------------
+	; RenderAmbient - 绘制ambient
+	; @param
+	; @return void
+	;------------------------------------------
+	RenderAmbient PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset ambi
+		mov esi, 0
+		; 暂时先只是加载一张图片
+		.while esi < ambiCount
+			mov eax, (Ambient PTR [edi]).tp
+			shl eax, 6
+			mov ecx, (Ambient PTR [edi]).frame
+			shl ecx, 6
+			invoke Bmp2Buffer, hBmpAmbientM64, \
+				(Ambient PTR [edi]).x, (Ambient PTR [edi]).y, \
+				(Ambient PTR [edi]).w, (Ambient PTR [edi]).h, \
+				eax, ecx, \
+				64, 64, \
+				SRCAND
+			invoke Bmp2Buffer, hBmpAmbient64, \
+				(Ambient PTR [edi]).x, (Ambient PTR [edi]).y, \
+				(Ambient PTR [edi]).w, (Ambient PTR [edi]).h, \
+				eax, ecx, \
+				64, 64, \
+				SRCPAINT
+			add edi, TYPE Ambient
+			inc esi
+		.endw
+		ret
+	RenderAmbient ENDP
+
+	;------------------------------------------
+	; RecycleAmbient - 回收ambient
+	; @param
+	; @return void
+	;------------------------------------------
+	RecycleAmbient PROC uses eax ebx ecx edx esi edi
+		mov edi, offset ambi
+		xor esi, esi
+		.while esi < ambiCount
+			mov eax, (Ambient PTR [edi]).y
+			add eax, 64 ; 64是图片的高度
+			cmp eax, 0
+			jg RecycleAmbientEnd
+			; 开始回收，即重新生成
+			mov (Ambient PTR [edi]).y, 700
+			invoke GetRandPosX
+			mov (Ambient PTR [edi]).x, eax
+			invoke GetRandom, 0, 3
+			mov (Ambient PTR [edi]).tp, eax
+			RecycleAmbientEnd:
+			inc esi
+			add edi, TYPE Ambient
+		.endw
+		xor eax,eax
+		ret
+	RecycleAmbient ENDP
+
+	;------------------------------------------
 	; WndProc - Window procedure
 	; @param hWnd:HWND
 	; @param uMsg:UINT
@@ -707,9 +864,10 @@ rand	proto C
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
+			; invoke Bmp2Buffer, hBmpAmbientM64, 0, 0, 256, 384, 0, 0, 256, 384, SRCAND
+			; invoke Bmp2Buffer, hBmpAmbient64, 0, 0, 256, 384, 0, 0, 256, 384, SRCPAINT
 			; invoke RenderWater
-			invoke Bmp2Buffer, hBmpAmbientM64, 0, 0, 256, 384, 0, 0, 256, 384, SRCAND
-			invoke Bmp2Buffer, hBmpAmbient64, 0, 0, 256, 384, 0, 0, 256, 384, SRCPAINT
+			invoke RenderAmbient
 			; invoke RenderSlowd
 			invoke RenderSurfer
 			invoke Buffer2Window
@@ -724,6 +882,11 @@ rand	proto C
 			; .if slowdCount > 2
 			; 	invoke RecycleSlowd
 			; .endif
+			invoke GenerateAmbient
+			invoke UpdateAmbient
+			.if ambiCount > 2
+				invoke RecycleAmbient
+			.endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
