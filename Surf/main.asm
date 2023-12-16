@@ -72,7 +72,7 @@ rand	proto C
 	; 记录生成的ambient的数量
 	ambiCount dd 0
 	ambiInterval dd 20 ; 最开始时的生成间隔，40差不多应该，之后的生成间隔为随机数
-	MAXAMBI dd 8 ; 最多生成的ambient的数量
+	MAXAMBI dd 1 ; 最多生成的ambient的数量
 
 .data?
 	hInstance dword ? 	;程序的句柄
@@ -124,7 +124,7 @@ rand	proto C
 		tp dd ?			; 0~3 4个类型可以选择
 		frame dd ?		; 0~5 6个frame可以选择
 	Ambient ends
-	ambi Ambient 10 dup(<?,?,?,?,?,?>)
+	ambi Ambient 4 dup(<?,?,?,?,?,?>)
 	
 .code
 
@@ -402,7 +402,7 @@ rand	proto C
 		inc aniTimer
 		mov eax, aniTimer
 		mov edx, 0    ; 清零edx，因为div指令会使用edx:eax作为被除数
-		mov ecx, 64    ; 放入ecx，作为除数
+		mov ecx, 128    ; 放入ecx，作为除数
 		div ecx       ; 执行除法操作，eax = edx:eax / ecx，edx = edx:eax % ecx
 		mov aniTimer, edx  ; 将余数（%结果）放回surfBtimer
 		xor eax, eax
@@ -738,11 +738,11 @@ rand	proto C
 		mov (Ambient PTR [edi]).h, eax
 		invoke GetRandom, 0, 3
 		mov (Ambient PTR [edi]).tp, eax
-		invoke GetRandom, 0, 5
+		mov eax, 0
 		mov (Ambient PTR [edi]).frame, eax
 		inc ambiCount
 
-		invoke GetRandom, 20, 30
+		invoke GetRandom, 80, 180
 		mov ambiInterval, eax
 		GenerateAmbientEnd:
 			dec ambiInterval
@@ -767,25 +767,23 @@ rand	proto C
 			mov (Ambient PTR [edi]).x, eax
 			mov (Ambient PTR [edi]).y, ecx
 
-			; if aniTimer % 4 == 0  frame++ 
-			; else 等于之前的帧
-
-			mov ecx, (Ambient PTR [edi]).frame
-			mov edx, 0			;被除数的高32位
-			mov eax, aniTimer 	;被除数的低32位
-			; cmp eax, 12
-			; jg UpdateAmbientEnd
-			mov ebx, 4			;除数
-			div ebx
-			cmp edx, 0
-			jne UpdateAmbientEnd
-			inc ecx
-			cmp ecx, 6
-			jl UpdateAmbientEnd
-			mov ecx, 0
-			UpdateAmbientEnd:		
-
-			mov (Ambient PTR [edi]).frame, ecx
+			mov eax, (Ambient PTR [edi]).frame
+			.if aniTimer == 0
+				mov eax, 0
+			.elseif aniTimer == 8
+				mov eax, 1
+			.elseif aniTimer == 16
+				mov eax, 2
+			.elseif aniTimer == 24
+				mov eax, 3
+			.elseif aniTimer == 32	
+				mov eax, 4
+			.elseif aniTimer == 40
+				mov eax, 5
+			.elseif aniTimer > 40
+				mov eax, 5
+			.endif
+			mov (Ambient PTR [edi]).frame, eax
 			add edi, TYPE Ambient
 			inc esi
 		.endw
@@ -844,6 +842,8 @@ rand	proto C
 			mov (Ambient PTR [edi]).x, eax
 			invoke GetRandom, 0, 3
 			mov (Ambient PTR [edi]).tp, eax
+			mov eax, 0
+			mov (Ambient PTR [edi]).frame, eax
 			RecycleAmbientEnd:
 			inc esi
 			add edi, TYPE Ambient
@@ -876,8 +876,8 @@ rand	proto C
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
 			; invoke Bmp2Buffer, hBmpAmbientM64, 0, 0, 256, 384, 0, 0, 256, 384, SRCAND
 			; invoke Bmp2Buffer, hBmpAmbient64, 0, 0, 256, 384, 0, 0, 256, 384, SRCPAINT
-			; invoke RenderWater
-			; invoke RenderAmbient
+			invoke RenderWater
+			invoke RenderAmbient
 			invoke RenderSlowd
 			invoke RenderSurfer
 			invoke Buffer2Window
@@ -886,7 +886,7 @@ rand	proto C
 			invoke UpdateSpeed
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
-			; invoke UpdateWater
+			invoke UpdateWater
 
 			invoke GenerateSlowD
 			invoke UpdateSlowD
@@ -894,11 +894,11 @@ rand	proto C
 				invoke RecycleSlowd
 			.endif
 
-			; invoke GenerateAmbient
-			; invoke UpdateAmbient
-			; .if ambiCount > 2
-			; 	invoke RecycleAmbient
-			; .endif
+			invoke GenerateAmbient
+			invoke UpdateAmbient
+			.if ambiCount > 1
+				invoke RecycleAmbient
+			.endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
