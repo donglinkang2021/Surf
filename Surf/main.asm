@@ -71,6 +71,8 @@ include resource.inc
 	hBmpPlayerM64 dd ?	;玩家mask的句柄
 	hBmpSurfB64 dd ?	;冲浪板的句柄
 	hBmpSurfBM64 dd ?	;冲浪板mask的句柄
+	hBmpSlowd dd ?		;减速物体的句柄
+	hBmpSlowdM dd ?		;减速物体mask的句柄
 
 	; 从一个bmp中选择一部分绘制到窗口中
 	; xywh 是基于屏幕的相对坐标，是指画在屏幕的哪个位置以及画多大
@@ -109,6 +111,10 @@ include resource.inc
 		mov hBmpSurfB64, eax
 		invoke LoadBitmap, hInstance, IDB_SURFBM64
 		mov hBmpSurfBM64, eax
+		invoke LoadBitmap, hInstance, IDB_SLOWD64
+		mov hBmpSlowd, eax
+		invoke LoadBitmap, hInstance, IDB_SLOWDM64
+		mov hBmpSlowdM, eax
 		ret
 	LoadAllBmp ENDP
 
@@ -124,6 +130,8 @@ include resource.inc
 		invoke DeleteObject, hBmpPlayerM64
 		invoke DeleteObject, hBmpSurfB64
 		invoke DeleteObject, hBmpSurfBM64
+		invoke DeleteObject, hBmpSlowd
+		invoke DeleteObject, hBmpSlowdM
 		ret
 	DeleteBmp ENDP
 
@@ -498,7 +506,9 @@ include resource.inc
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
-			invoke RenderWater
+			; invoke RenderWater
+			invoke Bmp2Buffer, hBmpSlowdM, 0, 0, 576, 192, 0, 0, 576, 192, SRCAND
+			invoke Bmp2Buffer, hBmpSlowd, 0, 0, 576, 192, 0, 0, 576, 192, SRCPAINT
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -506,7 +516,7 @@ include resource.inc
 			invoke UpdateSpeed
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
-			invoke UpdateWater
+			; invoke UpdateWater
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
