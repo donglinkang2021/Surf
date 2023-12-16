@@ -79,8 +79,10 @@ rand	proto C
 	hBmpPlayerM64 dd ?	;玩家mask的句柄
 	hBmpSurfB64 dd ?	;冲浪板的句柄
 	hBmpSurfBM64 dd ?	;冲浪板mask的句柄
-	hBmpSlowd64 dd ?		;减速物体的句柄
-	hBmpSlowdM64 dd ?		;减速物体mask的句柄
+	hBmpSlowd64 dd ?	;减速物体的句柄
+	hBmpSlowdM64 dd ?	;减速物体mask的句柄
+	hBmpAmbient64 dd ?	;氛围物体的句柄
+	hBmpAmbientM64 dd ?	;氛围物体mask的句柄
 
 	; 从一个bmp中选择一部分绘制到窗口中
 	; xywh 是基于屏幕的相对坐标，是指画在屏幕的哪个位置以及画多大
@@ -150,6 +152,10 @@ rand	proto C
 		mov hBmpSlowd64, eax
 		invoke LoadBitmap, hInstance, IDB_SLOWDM64
 		mov hBmpSlowdM64, eax
+		invoke LoadBitmap, hInstance, IDB_AMBIENT64
+		mov hBmpAmbient64, eax
+		invoke LoadBitmap, hInstance, IDB_AMBIENTM64
+		mov hBmpAmbientM64, eax
 		ret
 	LoadAllBmp ENDP
 
@@ -167,6 +173,8 @@ rand	proto C
 		invoke DeleteObject, hBmpSurfBM64
 		invoke DeleteObject, hBmpSlowd64
 		invoke DeleteObject, hBmpSlowdM64
+		invoke DeleteObject, hBmpAmbient64
+		invoke DeleteObject, hBmpAmbientM64
 		ret
 	DeleteBmp ENDP
 
@@ -699,10 +707,10 @@ rand	proto C
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
-			invoke RenderWater
-			; invoke Bmp2Buffer, hBmpSlowdM64, 0, 0, 576, 192, 0, 0, 576, 192, SRCAND
-			; invoke Bmp2Buffer, hBmpSlowd64, 0, 0, 576, 192, 0, 0, 576, 192, SRCPAINT
-			invoke RenderSlowd
+			; invoke RenderWater
+			invoke Bmp2Buffer, hBmpAmbientM64, 0, 0, 256, 384, 0, 0, 256, 384, SRCAND
+			invoke Bmp2Buffer, hBmpAmbient64, 0, 0, 256, 384, 0, 0, 256, 384, SRCPAINT
+			; invoke RenderSlowd
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -710,12 +718,12 @@ rand	proto C
 			invoke UpdateSpeed
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
-			invoke UpdateWater
-			invoke GenerateSlowD
-			invoke UpdateSlowD
-			.if slowdCount > 2
-				invoke RecycleSlowd
-			.endif
+			; invoke UpdateWater
+			; invoke GenerateSlowD
+			; invoke UpdateSlowD
+			; .if slowdCount > 2
+			; 	invoke RecycleSlowd
+			; .endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret

@@ -142,7 +142,8 @@
     <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="icon1.ico" />
+    <Image Include="source\ambient64.bmp" />
+    <Image Include="source\ambient64_mask.bmp" />
     <Image Include="source\background.bmp" />
     <Image Include="source\favicon-48x48.ico" />
     <Image Include="source\player64.bmp" />

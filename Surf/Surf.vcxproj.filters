@@ -30,9 +30,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="icon1.ico">
-      <Filter>资源文件</Filter>
-    </Image>
     <Image Include="source\background.bmp">
       <Filter>资源文件</Filter>
     </Image>
@@ -58,6 +55,12 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="source\favicon-48x48.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\ambient64.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\ambient64_mask.bmp">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>
