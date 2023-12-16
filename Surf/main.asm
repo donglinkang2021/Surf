@@ -22,6 +22,19 @@ include resource.inc
 
 	itemsCount dd 0	;当前已经加载的图片的数量
 
+	PosWater struct
+		x dd ?
+		y dd ?
+	PosWater ends
+	water PosWater <16,-84>
+
+	; 添加相对速度，因为到时候所有物体速度都是一样的
+	RelSpeed struct
+		x dd ?
+		y dd ?
+	RelSpeed ends
+	speed RelSpeed <0,0>
+
 	Player struct
 		x dd ?			; 初始在屏幕中的x位置
 		y dd ?			; 初始在屏幕中的y位置
@@ -53,6 +66,7 @@ include resource.inc
 	hWinMain dword ?	;窗体的句柄
 
 	hBmpBack dd ?		;背景图片的句柄
+	hBmpWater dd ?		;浪花的句柄, 浪花暂时不需要mask
 	hBmpPlayer64 dd ?	;玩家的句柄
 	hBmpPlayerM64 dd ?	;玩家mask的句柄
 	hBmpSurfB64 dd ?	;冲浪板的句柄
@@ -85,6 +99,8 @@ include resource.inc
 	LoadAllBmp PROC
 		invoke LoadBitmap, hInstance, IDB_BACK
 		mov hBmpBack, eax
+		invoke LoadBitmap, hInstance, IDB_WATER
+		mov hBmpWater, eax
 		invoke LoadBitmap, hInstance, IDB_PLAYER64
 		mov hBmpPlayer64, eax
 		invoke LoadBitmap, hInstance, IDB_PLAYERM64
@@ -103,6 +119,7 @@ include resource.inc
 	;------------------------------------------
 	DeleteBmp PROC
 		invoke DeleteObject, hBmpBack
+		invoke DeleteObject, hBmpWater
 		invoke DeleteObject, hBmpPlayer64
 		invoke DeleteObject, hBmpPlayerM64
 		invoke DeleteObject, hBmpSurfB64
@@ -346,6 +363,120 @@ include resource.inc
 	UpdateSurfBoard ENDP
 
 	;------------------------------------------
+	; RenderWater - 绘制水面
+	; @param
+	; @return void
+	;------------------------------------------
+	RenderWater PROC uses eax ebx ecx edx esi edi 
+
+		; 画水面
+		; -------------
+		; | 0 | 1 | 2 |
+		; -------------
+		; | 3 | 4 | 5 |
+		; -------------
+		; | 6 | 7 | 8 |
+		; -------------
+
+		; 画水面4
+		invoke Bmp2Buffer, hBmpWater, water.x, water.y, 768, 768, 0, 0, 768, 768, SRCPAINT
+		
+		; 画水面7
+		mov eax, water.y
+		add eax, 768
+		invoke Bmp2Buffer, hBmpWater, water.x, eax, 768, 768, 0, 0, 768, 768, SRCPAINT
+
+		; 画水面3
+		mov eax, water.x
+		sub eax, 768
+		invoke Bmp2Buffer, hBmpWater, eax, water.y, 768, 768, 0, 0, 768, 768, SRCPAINT
+
+		; 画水面5
+		mov eax, water.x
+		add eax, 768
+		invoke Bmp2Buffer, hBmpWater, eax, water.y, 768, 768, 0, 0, 768, 768, SRCPAINT
+
+		; 画水面6
+		mov eax, water.x
+		sub eax, 768
+		mov ecx, water.y
+		add ecx, 768
+		invoke Bmp2Buffer, hBmpWater, eax, ecx, 768, 768, 0, 0, 768, 768, SRCPAINT
+
+		; 画水面8
+		mov eax, water.x
+		add eax, 768
+		mov ecx, water.y
+		add ecx, 768
+		invoke Bmp2Buffer, hBmpWater, eax, ecx, 768, 768, 0, 0, 768, 768, SRCPAINT
+		ret
+	RenderWater ENDP
+
+	;------------------------------------------
+	; UpdateSpeed - 改变速度
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateSpeed PROC uses eax ebx ecx edx esi edi 
+		mov eax, 0
+		mov ecx, 0
+		.if surfer.action == 0 || surfer.action == 6 || surfer.action == 7 || surfer.action == 8
+			mov eax, 0
+			mov ecx, 0
+		.elseif surfer.action == 1
+			add eax, 3
+			sub ecx, 3
+		.elseif surfer.action == 2
+			add eax, 2
+			sub ecx, 4
+		.elseif surfer.action == 3
+			sub ecx, 5
+			.if player_state == 1
+				mov ecx, 8
+			.endif
+		.elseif surfer.action == 4
+			sub eax, 2
+			sub ecx, 4
+		.elseif surfer.action == 5
+			sub eax, 3
+			sub ecx, 3
+		.else
+			sub ecx, 8
+		.endif
+		mov speed.x, eax
+		mov speed.y, ecx
+		ret
+	UpdateSpeed ENDP
+	
+	;------------------------------------------
+	; UpdateWater - 更新波浪的位置
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateWater PROC uses eax ebx ecx edx esi edi 
+		mov eax, water.x
+		mov ecx, water.y
+		add eax, speed.x
+		add ecx, speed.y
+		; 循环恢复
+		cmp eax, -752 ; x0 - 768 = 16 - 768
+		jg Update1
+		mov eax, 16
+		Update1:
+		cmp eax, 784 ; x0 + 768 = 16 + 768
+		jl Update2
+		mov eax, 16
+		Update2:
+		cmp ecx, -852 ; y0 - 768 = -84 - 768
+		jg Update3
+		mov ecx, -84
+		Update3:
+		mov water.x, eax 
+		mov water.y, ecx
+		ret
+	UpdateWater ENDP
+
+	;------------------------------------------
 	; WndProc - Window procedure
 	; @param hWnd:HWND
 	; @param uMsg:UINT
@@ -367,12 +498,15 @@ include resource.inc
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
+			invoke RenderWater
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
 			invoke InvalidateRect,hWnd,NULL,FALSE
+			invoke UpdateSpeed
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
+			invoke UpdateWater
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
