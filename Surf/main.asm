@@ -402,7 +402,7 @@ rand	proto C
 		inc aniTimer
 		mov eax, aniTimer
 		mov edx, 0    ; 清零edx，因为div指令会使用edx:eax作为被除数
-		mov ecx, 24    ; 放入ecx，作为除数
+		mov ecx, 64    ; 放入ecx，作为除数
 		div ecx       ; 执行除法操作，eax = edx:eax / ecx，edx = edx:eax % ecx
 		mov aniTimer, edx  ; 将余数（%结果）放回surfBtimer
 		xor eax, eax
@@ -415,15 +415,19 @@ rand	proto C
 	; @return void
 	;------------------------------------------
 	UpdateSurfBoard PROC uses eax ebx ecx edx esi edi 
-		mov eax, surfer.surfBframe
-		.if aniTimer == 0
-			mov eax, 0
-		.elseif aniTimer == 8
-			mov eax, 1
-		.elseif aniTimer == 16
-			mov eax, 2
-		.endif
-		mov surfer.surfBframe, eax
+		mov ecx, surfer.surfBframe
+		mov edx, 0			;被除数的高32位
+		mov eax, aniTimer 	;被除数的低32位
+		mov ebx, 8			;除数
+		div ebx
+		cmp edx, 0
+		jne UpdateSurfBoardEnd
+		inc ecx
+		cmp ecx, 3
+		jl UpdateSurfBoardEnd
+		mov ecx, 0
+		UpdateSurfBoardEnd:
+		mov surfer.surfBframe, ecx
 		xor eax, eax
 		ret
 	UpdateSurfBoard ENDP
@@ -626,16 +630,22 @@ rand	proto C
 			add ecx, speed.y
 			mov (Slowdown PTR [edi]).x, eax
 			mov (Slowdown PTR [edi]).y, ecx
-			.if aniTimer == 0
-				mov eax, 0
-			.elseif aniTimer == 8
-				mov eax, 1
-			.elseif aniTimer == 16
-				mov eax, 2
-			.else
-				mov eax, (Slowdown PTR [edi]).frame ; 否则等于之前的帧
-			.endif
-			mov (Slowdown PTR [edi]).frame, eax
+			; if aniTimer % 8 == 0  frame++
+			; else 等于之前的帧
+			mov ecx, (Slowdown PTR [edi]).frame
+			mov edx, 0			;被除数的高32位
+			mov eax, aniTimer 	;被除数的低32位
+			mov ebx, 8			;除数
+			div ebx
+			cmp edx, 0
+			jne UpdateSlowdEnd
+			inc ecx
+			cmp ecx, 3
+			jl UpdateSlowdEnd
+			mov ecx, 0
+			UpdateSlowdEnd:
+
+			mov (Slowdown PTR [edi]).frame, ecx
 			add edi, TYPE Slowdown
 			inc esi
 		.endw
@@ -867,8 +877,8 @@ rand	proto C
 			; invoke Bmp2Buffer, hBmpAmbientM64, 0, 0, 256, 384, 0, 0, 256, 384, SRCAND
 			; invoke Bmp2Buffer, hBmpAmbient64, 0, 0, 256, 384, 0, 0, 256, 384, SRCPAINT
 			; invoke RenderWater
-			invoke RenderAmbient
-			; invoke RenderSlowd
+			; invoke RenderAmbient
+			invoke RenderSlowd
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -877,16 +887,18 @@ rand	proto C
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
 			; invoke UpdateWater
-			; invoke GenerateSlowD
-			; invoke UpdateSlowD
-			; .if slowdCount > 2
-			; 	invoke RecycleSlowd
-			; .endif
-			invoke GenerateAmbient
-			invoke UpdateAmbient
-			.if ambiCount > 2
-				invoke RecycleAmbient
+
+			invoke GenerateSlowD
+			invoke UpdateSlowD
+			.if slowdCount > 2
+				invoke RecycleSlowd
 			.endif
+
+			; invoke GenerateAmbient
+			; invoke UpdateAmbient
+			; .if ambiCount > 2
+			; 	invoke RecycleAmbient
+			; .endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
