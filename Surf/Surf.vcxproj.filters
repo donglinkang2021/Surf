@@ -63,6 +63,12 @@
     <Image Include="source\ambient64_mask.bmp">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="source\objects64.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\objects64_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="resource.inc">

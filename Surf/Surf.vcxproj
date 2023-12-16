@@ -146,6 +146,8 @@
     <Image Include="source\ambient64_mask.bmp" />
     <Image Include="source\background.bmp" />
     <Image Include="source\favicon-48x48.ico" />
+    <Image Include="source\objects64.bmp" />
+    <Image Include="source\objects64_mask.bmp" />
     <Image Include="source\player64.bmp" />
     <Image Include="source\player64_mask.bmp" />
     <Image Include="source\slowdown64.bmp" />
