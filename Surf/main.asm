@@ -53,7 +53,7 @@ rand	proto C
 	; 6 ~ 7 落水0, 落水1
 	; 8 站着 
 	; 9 ~ 12 翻滚0, 翻滚1, 翻滚2, 翻滚3
-	surfer Player <368, 236, 64, 64, 0, 0, 0>
+	surfer Player <624, 236, 64, 64, 0, 0, 0>
 	; 1312x784 就是全屏这里
 	; 1312 / 2 - 64 / 2 = 624
 
@@ -91,11 +91,26 @@ rand	proto C
 	hBmpAmbient64 dd ?	;氛围物体的句柄
 	hBmpAmbientM64 dd ?	;氛围物体mask的句柄
 
-	; 后面弄group可能用上
+	; 后面弄group可能用上，下面的没实现
+	hBmpObjects32 dd ?	;物体的句柄
+	hBmpObjectsM32 dd ?	;物体mask的句柄
 	hBmpObjects64 dd ?	;物体的句柄
 	hBmpObjectsM64 dd ?	;物体mask的句柄
 	hBmpInteract64 dd ?	;交互物体的句柄
 	hBmpInteractM64 dd ?;交互物体mask的句柄
+	hBmpInterface24 dd ?	;界面状态的句柄
+	hBmpInterfaceM24 dd ?	;界面状态mask的句柄
+	hBmpIsland1280 dd ?	;岛屿的句柄
+	hBmpIslandM1280 dd ?;岛屿mask的句柄
+	hBmpDocks64 dd ?	;码头的句柄
+	hBmpDocksM64 dd ?	;码头mask的句柄
+	hBmpEffects128 dd ?	;特效的句柄 漩涡 宝箱 闪耀动画
+	hBmpEffectsM128 dd ?;特效mask的句柄 漩涡 宝箱 闪耀动画
+	hBmpRipple96 dd ?	;水波纹的句柄
+	hBmpSandbar256 dd ?	;沙洲的句柄
+	hBmpSandbarM256 dd ?;沙洲mask的句柄
+	hBmpSurfer64 dd ?	;冲浪者npc的句柄
+	hBmpSurferM64 dd ?	;冲浪者npcmask的句柄
 
 	; 从一个bmp中选择一部分绘制到窗口中
 	; xywh 是基于屏幕的相对坐标，是指画在屏幕的哪个位置以及画多大
@@ -179,6 +194,10 @@ rand	proto C
 		mov hBmpAmbient64, eax
 		invoke LoadBitmap, hInstance, IDB_AMBIENTM64
 		mov hBmpAmbientM64, eax
+		invoke LoadBitmap, hInstance, IDB_OBJECTS32
+		mov hBmpObjects32, eax
+		invoke LoadBitmap, hInstance, IDB_OBJECTSM32
+		mov hBmpObjectsM32, eax
 		invoke LoadBitmap, hInstance, IDB_OBJECTS64
 		mov hBmpObjects64, eax
 		invoke LoadBitmap, hInstance, IDB_OBJECTSM64
@@ -187,6 +206,32 @@ rand	proto C
 		mov hBmpInteract64, eax
 		invoke LoadBitmap, hInstance, IDB_INTERACTM64
 		mov hBmpInteractM64, eax
+		invoke LoadBitmap, hInstance, IDB_INTERFACE24
+		mov hBmpInterface24, eax
+		invoke LoadBitmap, hInstance, IDB_INTERFACEM24
+		mov hBmpInterfaceM24, eax
+		invoke LoadBitmap, hInstance, IDB_ISLAND1280
+		mov hBmpIsland1280, eax
+		invoke LoadBitmap, hInstance, IDB_ISLANDM1280
+		mov hBmpIslandM1280, eax
+		invoke LoadBitmap, hInstance, IDB_DOCKS64
+		mov hBmpDocks64, eax
+		invoke LoadBitmap, hInstance, IDB_DOCKSM64
+		mov hBmpDocksM64, eax
+		invoke LoadBitmap, hInstance, IDB_EFFECTS128
+		mov hBmpEffects128, eax
+		invoke LoadBitmap, hInstance, IDB_EFFECTSM128
+		mov hBmpEffectsM128, eax
+		invoke LoadBitmap, hInstance, IDB_RIPPLE96
+		mov hBmpRipple96, eax
+		invoke LoadBitmap, hInstance, IDB_SANDBAR256
+		mov hBmpSandbar256, eax
+		invoke LoadBitmap, hInstance, IDB_SANDBARM256
+		mov hBmpSandbarM256, eax
+		invoke LoadBitmap, hInstance, IDB_SURFER64
+		mov hBmpSurfer64, eax
+		invoke LoadBitmap, hInstance, IDB_SURFERM64
+		mov hBmpSurferM64, eax
 		ret
 	LoadAllBmp ENDP
 
@@ -206,10 +251,25 @@ rand	proto C
 		invoke DeleteObject, hBmpSlowdM64
 		invoke DeleteObject, hBmpAmbient64
 		invoke DeleteObject, hBmpAmbientM64
+		invoke DeleteObject, hBmpObjects32
+		invoke DeleteObject, hBmpObjectsM32
 		invoke DeleteObject, hBmpObjects64
 		invoke DeleteObject, hBmpObjectsM64
 		invoke DeleteObject, hBmpInteract64
 		invoke DeleteObject, hBmpInteractM64
+		invoke DeleteObject, hBmpInterface24
+		invoke DeleteObject, hBmpInterfaceM24
+		invoke DeleteObject, hBmpIsland1280
+		invoke DeleteObject, hBmpIslandM1280
+		invoke DeleteObject, hBmpDocks64
+		invoke DeleteObject, hBmpDocksM64
+		invoke DeleteObject, hBmpEffects128
+		invoke DeleteObject, hBmpEffectsM128
+		invoke DeleteObject, hBmpRipple96
+		invoke DeleteObject, hBmpSandbar256
+		invoke DeleteObject, hBmpSandbarM256
+		invoke DeleteObject, hBmpSurfer64
+		invoke DeleteObject, hBmpSurferM64
 		ret
 	DeleteBmp ENDP
 
@@ -873,6 +933,33 @@ rand	proto C
 	RecycleAmbient ENDP
 
 	;------------------------------------------
+	; RenderTest - 测试用
+	; @param
+	; @return void
+	;------------------------------------------
+	RenderTest PROC uses eax ebx ecx edx esi edi
+		; invoke Bmp2Buffer, hBmpObjectsM32, 0, 0, 640, 32, 0, 0, 640, 32, SRCAND
+		; invoke Bmp2Buffer, hBmpObjects32, 0, 0, 640, 32, 0, 0, 640, 32, SRCPAINT
+		invoke Bmp2Buffer, hBmpInteractM64, 0, 0, 512, 256, 0, 0, 512, 256, SRCAND
+		invoke Bmp2Buffer, hBmpInteract64, 0, 0, 512, 256, 0, 0, 512, 256, SRCPAINT
+		; invoke Bmp2Buffer, hBmpInterfaceM24, 0, 0, 48, 96, 0, 0, 48, 96, SRCAND
+		; invoke Bmp2Buffer, hBmpInterface24, 0, 0, 48, 96, 0, 0, 48, 96, SRCPAINT
+		; invoke Bmp2Buffer, hBmpIslandM1280, 0, 0, 1280, 512, 0, 0, 1280, 512, SRCAND
+		; invoke Bmp2Buffer, hBmpIsland1280, 0, 0, 1280, 512, 0, 0, 1280, 512, SRCPAINT
+		; invoke Bmp2Buffer, hBmpDocksM64, 0, 0, 640, 64, 0, 0, 640, 64, SRCAND
+		; invoke Bmp2Buffer, hBmpDocks64, 0, 0, 640, 64, 0, 0, 640, 64, SRCPAINT
+		; invoke Bmp2Buffer, hBmpEffectsM128, 0, 0, 768, 384, 0, 0, 768, 384, SRCAND
+		; invoke Bmp2Buffer, hBmpEffects128, 0, 0, 768, 384, 0, 0, 768, 384, SRCPAINT
+		; invoke Bmp2Buffer, hBmpRipple96, 0, 0, 96, 288, 0, 0, 96, 288, SRCPAINT
+		; invoke Bmp2Buffer, hBmpSandbarM256, 0, 0, 1024, 128, 0, 0, 1024, 128, SRCAND
+		; invoke Bmp2Buffer, hBmpSandbar256, 0, 0, 1024, 128, 0, 0, 1024, 128, SRCPAINT
+		; invoke Bmp2Buffer, hBmpSurferM64, 0, 0, 1728, 128, 0, 0, 1728, 128, SRCAND
+		; invoke Bmp2Buffer, hBmpSurfer64, 0, 0, 1728, 128, 0, 0, 1728, 128, SRCPAINT
+		xor eax, eax
+		ret
+	RenderTest ENDP
+	
+	;------------------------------------------
 	; WndProc - Window procedure
 	; @param hWnd:HWND
 	; @param uMsg:UINT
@@ -894,8 +981,7 @@ rand	proto C
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
-			invoke Bmp2Buffer, hBmpInteractM64, 0, 0, 512, 256, 0, 0, 512, 256, SRCAND
-			invoke Bmp2Buffer, hBmpInteract64, 0, 0, 512, 256, 0, 0, 512, 256, SRCPAINT
+			invoke RenderTest
 			; invoke RenderWater
 			; invoke RenderAmbient
 			; invoke RenderSlowd
@@ -957,7 +1043,7 @@ rand	proto C
 				offset MyWinClass,\
 				offset AppName,\
 				WS_OVERLAPPEDWINDOW,\
-				100,100,800,700,\
+				100,100,1312,784,\
 				NULL,NULL,hInstance,NULL
 		mov	hWinMain,eax
 		invoke ShowWindow, hWinMain, SW_SHOWDEFAULT 
