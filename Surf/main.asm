@@ -28,8 +28,10 @@ rand	proto C
 	PosWater struct
 		x dd ?
 		y dd ?
+		w dd ?
+		h dd ?
 	PosWater ends
-	water PosWater <16,-84>
+	water PosWater <16,8,1280,768>
 
 	; 添加相对速度，因为到时候所有物体速度都是一样的
 	RelSpeed struct
@@ -191,7 +193,7 @@ rand	proto C
 	LoadAllBmp PROC
 		invoke LoadBitmap, hInstance, IDB_BACK
 		mov hBmpBack, eax
-		invoke LoadBitmap, hInstance, IDB_WATER
+		invoke LoadBitmap, hInstance, IDB_WATER1280
 		mov hBmpWater, eax
 		invoke LoadBitmap, hInstance, IDB_PLAYER64
 		mov hBmpPlayer64, eax
@@ -544,36 +546,36 @@ rand	proto C
 		; -------------
 
 		; 画水面4
-		invoke Bmp2Buffer, hBmpWater, water.x, water.y, 768, 768, 0, 0, 768, 768, SRCPAINT
+		invoke Bmp2Buffer, hBmpWater, water.x, water.y, water.w, water.h, 0, 0, water.w, water.h, SRCPAINT
 		
 		; 画水面7
 		mov eax, water.y
-		add eax, 768
-		invoke Bmp2Buffer, hBmpWater, water.x, eax, 768, 768, 0, 0, 768, 768, SRCPAINT
+		add eax, water.h
+		invoke Bmp2Buffer, hBmpWater, water.x, eax, water.w, water.h, 0, 0, water.w, water.h, SRCPAINT
 
 		; 画水面3
 		mov eax, water.x
-		sub eax, 768
-		invoke Bmp2Buffer, hBmpWater, eax, water.y, 768, 768, 0, 0, 768, 768, SRCPAINT
+		sub eax, water.w
+		invoke Bmp2Buffer, hBmpWater, eax, water.y, water.w, water.h, 0, 0, water.w, water.h, SRCPAINT
 
 		; 画水面5
 		mov eax, water.x
-		add eax, 768
-		invoke Bmp2Buffer, hBmpWater, eax, water.y, 768, 768, 0, 0, 768, 768, SRCPAINT
+		add eax, water.w
+		invoke Bmp2Buffer, hBmpWater, eax, water.y, water.w, water.h, 0, 0, water.w, water.h, SRCPAINT
 
 		; 画水面6
 		mov eax, water.x
-		sub eax, 768
+		sub eax, water.w
 		mov ecx, water.y
-		add ecx, 768
-		invoke Bmp2Buffer, hBmpWater, eax, ecx, 768, 768, 0, 0, 768, 768, SRCPAINT
+		add ecx, water.h
+		invoke Bmp2Buffer, hBmpWater, eax, ecx, water.w, water.h, 0, 0, water.w, water.h, SRCPAINT
 
 		; 画水面8
 		mov eax, water.x
-		add eax, 768
+		add eax, water.w
 		mov ecx, water.y
-		add ecx, 768
-		invoke Bmp2Buffer, hBmpWater, eax, ecx, 768, 768, 0, 0, 768, 768, SRCPAINT
+		add ecx, water.h
+		invoke Bmp2Buffer, hBmpWater, eax, ecx, water.w, water.h, 0, 0, water.w, water.h, SRCPAINT
 		ret
 	RenderWater ENDP
 
@@ -1138,9 +1140,9 @@ rand	proto C
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
 			; invoke RenderTest
 			invoke RenderWater
-			invoke RenderAmbient
-			invoke RenderSlowd
-			invoke RenderInteract
+			; invoke RenderAmbient
+			; invoke RenderSlowd
+			; invoke RenderInteract
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -1151,23 +1153,23 @@ rand	proto C
 
 			invoke UpdateWater
 
-			invoke GenerateSlowD
-			invoke UpdateSlowD
-			.if slowdCount > 2
-				invoke RecycleSlowd
-			.endif
+			; invoke GenerateSlowD
+			; invoke UpdateSlowD
+			; .if slowdCount > 2
+			; 	invoke RecycleSlowd
+			; .endif
 
-			invoke GenerateAmbient
-			invoke UpdateAmbient
-			.if ambiCount > 1
-				invoke RecycleAmbient
-			.endif
+			; invoke GenerateAmbient
+			; invoke UpdateAmbient
+			; .if ambiCount > 1
+			; 	invoke RecycleAmbient
+			; .endif
 
-			invoke GenerateInteract
-			invoke UpdateInteract
-			.if interCount > 1
-				invoke RecycleInteract
-			.endif
+			; invoke GenerateInteract
+			; invoke UpdateInteract
+			; .if interCount > 1
+			; 	invoke RecycleInteract
+			; .endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret

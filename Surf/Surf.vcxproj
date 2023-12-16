@@ -173,6 +173,7 @@
     <Image Include="source\surfboard64_mask.bmp" />
     <Image Include="source\surfer64.bmp" />
     <Image Include="source\surfer64_mask.bmp" />
+    <Image Include="source\water1280x768.bmp" />
     <Image Include="source\water768.bmp" />
   </ItemGroup>
   <ItemGroup>
