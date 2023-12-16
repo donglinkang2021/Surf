@@ -76,6 +76,11 @@ rand	proto C
 	ambiInterval dd 20 ; 最开始时的生成间隔，40差不多应该，之后的生成间隔为随机数
 	MAXAMBI dd 1 ; 最多生成的ambient的数量
 
+	; 记录生成的interact的数量
+	interCount dd 0
+	interInterval dd 20 ; 最开始时的生成间隔，40差不多应该，之后的生成间隔为随机数
+	MAXINTER dd 1 ; 最多生成的interact的数量
+
 .data?
 	hInstance dword ? 	;程序的句柄
 	hWinMain dword ?	;窗体的句柄
@@ -127,7 +132,7 @@ rand	proto C
 		selectH dd ?	;位图的选择高度
 		flag dd ?	;位图的展示方式
 	ITEMBMP ends
-	items ITEMBMP 4096 dup(<?,?,?,?,?,?>)
+	items ITEMBMP 5120 dup(<?,?,?,?,?,?>)
 
 	Slowdown struct
 		x dd ?			; 初始在屏幕中的x位置
@@ -148,6 +153,16 @@ rand	proto C
 		frame dd ?		; 0~5 6个frame可以选择
 	Ambient ends
 	ambi Ambient 4 dup(<?,?,?,?,?,?>)
+
+	Interact struct
+		x dd ?			; 初始在屏幕中的x位置
+		y dd ?			; 初始在屏幕中的y位置
+		w dd ? 			; 在屏幕中绘制的w
+		h dd ? 			; 在屏幕中绘制的h
+		tp dd ?			; 0~7 8个类型可以选择
+		frame dd ?		; 0~3 4个frame可以选择
+	Interact ends
+	intera Interact 4 dup(<?,?,?,?,?,?>)
 	
 .code
 
@@ -503,7 +518,7 @@ rand	proto C
 		cmp edx, 0
 		jne UpdateSurfBoardEnd
 		inc ecx
-		cmp ecx, 3
+		cmp ecx, 3			; 3个frame
 		jl UpdateSurfBoardEnd
 		mov ecx, 0
 		UpdateSurfBoardEnd:
@@ -900,6 +915,7 @@ rand	proto C
 			add edi, TYPE Ambient
 			inc esi
 		.endw
+		xor eax, eax
 		ret
 	RenderAmbient ENDP
 
@@ -931,6 +947,145 @@ rand	proto C
 		xor eax,eax
 		ret
 	RecycleAmbient ENDP
+
+	; ------------------------------------------
+	; GenerateInteract - 生成interact
+	; @param
+	; @return void
+	; ------------------------------------------
+	GenerateInteract PROC uses eax ebx ecx edx esi edi
+		mov eax, interCount
+		cmp eax, MAXINTER
+		jg GenerateInteractRet
+		cmp interInterval, 0
+		jne GenerateInteractEnd
+		; 获得最新的一个Interact
+		mov edi, offset intera
+		mov esi, interCount
+		imul esi, TYPE Interact
+		add edi, esi
+
+		; 生成一个interact
+		invoke GetRandPosX
+		mov (Interact PTR [edi]).x, eax
+		mov eax, 700
+		mov (Interact PTR [edi]).y, eax
+		mov eax, 64
+		mov (Interact PTR [edi]).w, eax
+		mov eax, 64
+		mov (Interact PTR [edi]).h, eax
+		invoke GetRandom, 0, 7
+		mov (Interact PTR [edi]).tp, eax
+		mov eax, 0
+		mov (Interact PTR [edi]).frame, eax
+		inc interCount
+
+		invoke GetRandom, 20, 30
+		mov interInterval, eax
+		GenerateInteractEnd:
+			dec interInterval
+		GenerateInteractRet:
+			xor eax,eax
+			ret
+	GenerateInteract ENDP
+
+	;------------------------------------------
+	; UpdateInteract - 更新interact的位置
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateInteract PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset intera
+		mov esi, 0
+		.while esi < interCount
+			mov eax, (Interact PTR [edi]).x
+			mov ecx, (Interact PTR [edi]).y
+			add eax, speed.x
+			add ecx, speed.y
+			mov (Interact PTR [edi]).x, eax
+			mov (Interact PTR [edi]).y, ecx
+
+			mov ecx, (Interact PTR [edi]).frame
+			mov edx, 0			;被除数的高32位
+			mov eax, aniTimer 	;被除数的低32位
+			mov ebx, 8			;除数
+			div ebx
+			cmp edx, 0
+			jne UpdateInteractEnd
+			inc ecx
+			cmp ecx, 4			; 4帧
+			jl UpdateInteractEnd
+			mov ecx, 0
+			UpdateInteractEnd:
+			mov (Interact PTR [edi]).frame, ecx
+			add edi, TYPE Interact
+			inc esi
+		.endw
+		xor eax, eax
+		ret
+	UpdateInteract ENDP
+	
+	;------------------------------------------
+	; RenderInteract - 绘制interact
+	; @param
+	; @return void
+	;------------------------------------------
+	RenderInteract PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset intera
+		mov esi, 0
+		; 暂时先只是加载一张图片
+		.while esi < interCount
+			mov eax, (Interact PTR [edi]).tp
+			shl eax, 6
+			mov ecx, (Interact PTR [edi]).frame
+			shl ecx, 6
+			invoke Bmp2Buffer, hBmpInteractM64, \
+				(Interact PTR [edi]).x, (Interact PTR [edi]).y, \
+				(Interact PTR [edi]).w, (Interact PTR [edi]).h, \
+				eax, ecx, \
+				64, 64, \
+				SRCAND
+			invoke Bmp2Buffer, hBmpInteract64, \
+				(Interact PTR [edi]).x, (Interact PTR [edi]).y, \
+				(Interact PTR [edi]).w, (Interact PTR [edi]).h, \
+				eax, ecx, \
+				64, 64, \
+				SRCPAINT
+			add edi, TYPE Interact
+			inc esi
+		.endw
+		xor eax, eax
+		ret
+	RenderInteract ENDP
+
+	;------------------------------------------
+	; RecycleInteract - 回收interact
+	; @param
+	; @return void
+	;------------------------------------------
+	RecycleInteract PROC uses eax ebx ecx edx esi edi
+		mov edi, offset intera
+		xor esi, esi
+		.while esi < interCount
+			mov eax, (Interact PTR [edi]).y
+			add eax, 64 ; 64是图片的高度
+			cmp eax, 0
+			jg RecycleInteractEnd
+			; 开始回收，即重新生成
+			mov (Interact PTR [edi]).y, 700
+			invoke GetRandPosX
+			mov (Interact PTR [edi]).x, eax
+			invoke GetRandom, 0, 7
+			mov (Interact PTR [edi]).tp, eax
+			mov eax, 0
+			mov (Interact PTR [edi]).frame, eax
+			RecycleInteractEnd:
+			inc esi
+			add edi, TYPE Interact
+		.endw
+		xor eax,eax
+		ret
+	RecycleInteract ENDP
 
 	;------------------------------------------
 	; RenderTest - 测试用
@@ -981,10 +1136,11 @@ rand	proto C
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
-			invoke RenderTest
-			; invoke RenderWater
-			; invoke RenderAmbient
-			; invoke RenderSlowd
+			; invoke RenderTest
+			invoke RenderWater
+			invoke RenderAmbient
+			invoke RenderSlowd
+			invoke RenderInteract
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -993,19 +1149,25 @@ rand	proto C
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
 
-			; invoke UpdateWater
+			invoke UpdateWater
 
-			; invoke GenerateSlowD
-			; invoke UpdateSlowD
-			; .if slowdCount > 2
-			; 	invoke RecycleSlowd
-			; .endif
+			invoke GenerateSlowD
+			invoke UpdateSlowD
+			.if slowdCount > 2
+				invoke RecycleSlowd
+			.endif
 
-			; invoke GenerateAmbient
-			; invoke UpdateAmbient
-			; .if ambiCount > 1
-			; 	invoke RecycleAmbient
-			; .endif
+			invoke GenerateAmbient
+			invoke UpdateAmbient
+			.if ambiCount > 1
+				invoke RecycleAmbient
+			.endif
+
+			invoke GenerateInteract
+			invoke UpdateInteract
+			.if interCount > 1
+				invoke RecycleInteract
+			.endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
