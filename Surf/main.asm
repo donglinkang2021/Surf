@@ -10,6 +10,9 @@ includelib user32.lib
 include gdi32.inc
 includelib gdi32.lib
 include resource.inc
+include	masm32.inc
+includelib msvcrt.lib
+rand	proto C
 
 .const
 	MyWinClass   db "Simple Win Class",0
@@ -50,7 +53,7 @@ include resource.inc
 	; 6 ~ 7 落水0, 落水1
 	; 8 站着 
 	; 9 ~ 12 翻滚0, 翻滚1, 翻滚2, 翻滚3
-	surfer Player <368, 236, 64, 64, 0, 3, 0>
+	surfer Player <368, 236, 64, 64, 0, 0, 0>
 
 	; player_state
 	; 自己定义
@@ -60,6 +63,11 @@ include resource.inc
 	; 3 落水
 	; 4 站着
 	player_state dword 2
+
+	; 记录生成的slowdown的数量
+	slowdCount dd 0
+	slowdInterval dd 20 ; 最开始时的生成间隔，80差不多应该，之后的生成间隔为随机数
+	MAXSLOWD dd 8 ; 最多生成的slowdown的数量
 
 .data?
 	hInstance dword ? 	;程序的句柄
@@ -71,8 +79,8 @@ include resource.inc
 	hBmpPlayerM64 dd ?	;玩家mask的句柄
 	hBmpSurfB64 dd ?	;冲浪板的句柄
 	hBmpSurfBM64 dd ?	;冲浪板mask的句柄
-	hBmpSlowd dd ?		;减速物体的句柄
-	hBmpSlowdM dd ?		;减速物体mask的句柄
+	hBmpSlowd64 dd ?		;减速物体的句柄
+	hBmpSlowdM64 dd ?		;减速物体mask的句柄
 
 	; 从一个bmp中选择一部分绘制到窗口中
 	; xywh 是基于屏幕的相对坐标，是指画在屏幕的哪个位置以及画多大
@@ -90,8 +98,35 @@ include resource.inc
 		flag dd ?	;位图的展示方式
 	ITEMBMP ends
 	items ITEMBMP 4096 dup(<?,?,?,?,?,?>)
+
+	Slowdown struct
+		x dd ?			; 初始在屏幕中的x位置
+		y dd ?			; 初始在屏幕中的y位置
+		w dd ? 			; 在屏幕中绘制的w
+		h dd ? 			; 在屏幕中绘制的h
+		tp dd ?			; 0~8 9个类型可以选择
+		frame dd ?		; 0~2  3个frame可以选择
+	Slowdown ends
+	slowd Slowdown 10 dup(<?,?,?,?,?,?>) 
 	
 .code
+
+	;------------------------------------------
+	; GetRandom - 获取一个随机数
+	; @param left - 随机数的左边界
+	; @param right - 随机数的右边界
+	; @return 随机数
+	;------------------------------------------
+	GetRandom PROC left:dword,right:dword
+		invoke rand
+		xor edx,edx
+		mov ebx,right
+		sub ebx,left
+		div ebx
+		add edx,left
+		mov eax,edx
+		ret
+	GetRandom ENDP
 
 	;------------------------------------------
 	; LoadAllBmp - 加载所有的图片
@@ -112,9 +147,9 @@ include resource.inc
 		invoke LoadBitmap, hInstance, IDB_SURFBM64
 		mov hBmpSurfBM64, eax
 		invoke LoadBitmap, hInstance, IDB_SLOWD64
-		mov hBmpSlowd, eax
+		mov hBmpSlowd64, eax
 		invoke LoadBitmap, hInstance, IDB_SLOWDM64
-		mov hBmpSlowdM, eax
+		mov hBmpSlowdM64, eax
 		ret
 	LoadAllBmp ENDP
 
@@ -130,8 +165,8 @@ include resource.inc
 		invoke DeleteObject, hBmpPlayerM64
 		invoke DeleteObject, hBmpSurfB64
 		invoke DeleteObject, hBmpSurfBM64
-		invoke DeleteObject, hBmpSlowd
-		invoke DeleteObject, hBmpSlowdM
+		invoke DeleteObject, hBmpSlowd64
+		invoke DeleteObject, hBmpSlowdM64
 		ret
 	DeleteBmp ENDP
 
@@ -485,6 +520,164 @@ include resource.inc
 	UpdateWater ENDP
 
 	;------------------------------------------
+	; GetRandPosX - 生成随机的X坐标
+	; @param
+	; @return void
+	;------------------------------------------
+	GetRandPosX PROC uses ebx ecx edx esi edi
+		; 建议：理解这里的生成随机横坐标逻辑可以画一下图看看
+		invoke GetRandom, 0, 17
+		shl eax, 6
+		.if surfer.action == 3
+			mov ecx, -240
+		.elseif surfer.action == 1 || surfer.action == 2
+			mov ecx, -752
+		.elseif surfer.action == 4 || surfer.action == 5
+			mov ecx, 272
+		.endif
+		add ecx, eax
+		mov eax, ecx
+		ret
+	GetRandPosX ENDP
+	
+	;------------------------------------------
+	; GenerateSlowD - 生成slowdown
+	; @param
+	; @return void
+	;------------------------------------------
+	GenerateSlowD PROC uses eax ebx ecx edx esi edi
+		mov eax, slowdCount
+		cmp eax, MAXSLOWD
+		jg GenerateSlowdRet
+		cmp surfer.action, 0
+		je GenerateSlowdRet
+		cmp slowdInterval, 0
+		jne GenerateSlowdEnd
+		; 获得最新的一个Slowd
+		mov edi, offset slowd
+		mov esi, slowdCount
+		imul esi, TYPE Slowdown
+		add edi, esi
+
+		; 生成一个slowdown
+		; mov esi, 0
+		; .while esi < 3 ; 生成3个
+			invoke GetRandPosX
+			mov (Slowdown PTR [edi]).x, eax
+			mov eax, 700
+			mov (Slowdown PTR [edi]).y, eax
+			mov eax, 64
+			mov (Slowdown PTR [edi]).w, eax
+			mov eax, 64
+			mov (Slowdown PTR [edi]).h, eax
+			invoke GetRandom, 0, 8
+			mov (Slowdown PTR [edi]).tp, eax
+			mov eax, 0
+			mov (Slowdown PTR [edi]).frame, eax
+			inc slowdCount
+			; add edi, TYPE Slowdown
+			; inc esi
+		; .endw
+
+		invoke GetRandom, 20, 30
+		mov slowdInterval, eax
+		GenerateSlowdEnd:
+			dec slowdInterval
+		GenerateSlowdRet:
+			xor eax,eax
+			ret
+	GenerateSlowD ENDP
+
+	;------------------------------------------
+	; UpdateSlowD - 更新slowdown的位置
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateSlowD PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset slowd
+		mov esi, 0
+		.while esi < slowdCount
+			mov eax, (Slowdown PTR [edi]).x
+			mov ecx, (Slowdown PTR [edi]).y
+			add eax, speed.x
+			add ecx, speed.y
+			mov (Slowdown PTR [edi]).x, eax
+			mov (Slowdown PTR [edi]).y, ecx
+			.if aniTimer == 0
+				mov eax, 0
+			.elseif aniTimer == 8
+				mov eax, 1
+			.elseif aniTimer == 16
+				mov eax, 2
+			.else
+				mov eax, (Slowdown PTR [edi]).frame ; 否则等于之前的帧
+			.endif
+			mov (Slowdown PTR [edi]).frame, eax
+			add edi, TYPE Slowdown
+			inc esi
+		.endw
+		xor eax, eax
+		ret
+	UpdateSlowD ENDP
+
+	;------------------------------------------
+	; RenderSlowd - 绘制slowdown
+	; @param
+	; @return void
+	;------------------------------------------
+	RenderSlowd PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset slowd
+		mov esi, 0
+		; 暂时先只是加载一张图片
+		.while esi < slowdCount
+			mov eax, (Slowdown PTR [edi]).tp
+			shl eax, 6
+			mov ecx, (Slowdown PTR [edi]).frame
+			shl ecx, 6
+			invoke Bmp2Buffer, hBmpSlowdM64, \
+				(Slowdown PTR [edi]).x, (Slowdown PTR [edi]).y, \
+				(Slowdown PTR [edi]).w, (Slowdown PTR [edi]).h, \
+				eax, ecx, \
+				64, 64, \
+				SRCAND
+			invoke Bmp2Buffer, hBmpSlowd64, \
+				(Slowdown PTR [edi]).x, (Slowdown PTR [edi]).y, \
+				(Slowdown PTR [edi]).w, (Slowdown PTR [edi]).h, \
+				eax, ecx, \
+				64, 64, \
+				SRCPAINT
+			add edi, TYPE Slowdown
+			inc esi
+		.endw
+		ret
+	RenderSlowd ENDP
+
+	;------------------------------------------
+	; RecycleSlowd - 回收slowdown
+	; @param
+	; @return void
+	;------------------------------------------
+	RecycleSlowd PROC uses eax ebx ecx edx esi edi
+		mov edi, offset slowd
+		xor esi, esi
+		.while esi < slowdCount
+			mov eax, (Slowdown PTR [edi]).y
+			add eax, 64
+			cmp eax, 0
+			jg RecycleSlowdEnd
+			; 开始回收，即重新生成
+			mov (Slowdown PTR [edi]).y, 700
+			invoke GetRandPosX
+			mov (Slowdown PTR [edi]).x, eax
+			RecycleSlowdEnd:
+			inc esi
+			add edi, TYPE Slowdown
+		.endw
+		xor eax,eax
+		ret
+	RecycleSlowd ENDP
+
+	;------------------------------------------
 	; WndProc - Window procedure
 	; @param hWnd:HWND
 	; @param uMsg:UINT
@@ -506,9 +699,10 @@ include resource.inc
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
-			; invoke RenderWater
-			invoke Bmp2Buffer, hBmpSlowdM, 0, 0, 576, 192, 0, 0, 576, 192, SRCAND
-			invoke Bmp2Buffer, hBmpSlowd, 0, 0, 576, 192, 0, 0, 576, 192, SRCPAINT
+			invoke RenderWater
+			; invoke Bmp2Buffer, hBmpSlowdM64, 0, 0, 576, 192, 0, 0, 576, 192, SRCAND
+			; invoke Bmp2Buffer, hBmpSlowd64, 0, 0, 576, 192, 0, 0, 576, 192, SRCPAINT
+			invoke RenderSlowd
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -516,7 +710,12 @@ include resource.inc
 			invoke UpdateSpeed
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
-			; invoke UpdateWater
+			invoke UpdateWater
+			invoke GenerateSlowD
+			invoke UpdateSlowD
+			.if slowdCount > 2
+				invoke RecycleSlowd
+			.endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
