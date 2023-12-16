@@ -54,6 +54,8 @@ rand	proto C
 	; 8 站着 
 	; 9 ~ 12 翻滚0, 翻滚1, 翻滚2, 翻滚3
 	surfer Player <368, 236, 64, 64, 0, 0, 0>
+	; 1312x784 就是全屏这里
+	; 1312 / 2 - 64 / 2 = 624
 
 	; player_state
 	; 自己定义
@@ -88,6 +90,12 @@ rand	proto C
 	hBmpSlowdM64 dd ?	;减速物体mask的句柄
 	hBmpAmbient64 dd ?	;氛围物体的句柄
 	hBmpAmbientM64 dd ?	;氛围物体mask的句柄
+
+	; 后面弄group可能用上
+	hBmpObjects64 dd ?	;物体的句柄
+	hBmpObjectsM64 dd ?	;物体mask的句柄
+	hBmpInteract64 dd ?	;交互物体的句柄
+	hBmpInteractM64 dd ?;交互物体mask的句柄
 
 	; 从一个bmp中选择一部分绘制到窗口中
 	; xywh 是基于屏幕的相对坐标，是指画在屏幕的哪个位置以及画多大
@@ -171,6 +179,14 @@ rand	proto C
 		mov hBmpAmbient64, eax
 		invoke LoadBitmap, hInstance, IDB_AMBIENTM64
 		mov hBmpAmbientM64, eax
+		invoke LoadBitmap, hInstance, IDB_OBJECTS64
+		mov hBmpObjects64, eax
+		invoke LoadBitmap, hInstance, IDB_OBJECTSM64
+		mov hBmpObjectsM64, eax
+		invoke LoadBitmap, hInstance, IDB_INTERACT64
+		mov hBmpInteract64, eax
+		invoke LoadBitmap, hInstance, IDB_INTERACTM64
+		mov hBmpInteractM64, eax
 		ret
 	LoadAllBmp ENDP
 
@@ -190,6 +206,10 @@ rand	proto C
 		invoke DeleteObject, hBmpSlowdM64
 		invoke DeleteObject, hBmpAmbient64
 		invoke DeleteObject, hBmpAmbientM64
+		invoke DeleteObject, hBmpObjects64
+		invoke DeleteObject, hBmpObjectsM64
+		invoke DeleteObject, hBmpInteract64
+		invoke DeleteObject, hBmpInteractM64
 		ret
 	DeleteBmp ENDP
 
@@ -874,11 +894,11 @@ rand	proto C
 			invoke PlayerRole, wParam
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
-			; invoke Bmp2Buffer, hBmpAmbientM64, 0, 0, 256, 384, 0, 0, 256, 384, SRCAND
-			; invoke Bmp2Buffer, hBmpAmbient64, 0, 0, 256, 384, 0, 0, 256, 384, SRCPAINT
-			invoke RenderWater
-			invoke RenderAmbient
-			invoke RenderSlowd
+			invoke Bmp2Buffer, hBmpInteractM64, 0, 0, 512, 256, 0, 0, 512, 256, SRCAND
+			invoke Bmp2Buffer, hBmpInteract64, 0, 0, 512, 256, 0, 0, 512, 256, SRCPAINT
+			; invoke RenderWater
+			; invoke RenderAmbient
+			; invoke RenderSlowd
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -886,19 +906,20 @@ rand	proto C
 			invoke UpdateSpeed
 			invoke UpdateAniTimer
 			invoke UpdateSurfBoard
-			invoke UpdateWater
 
-			invoke GenerateSlowD
-			invoke UpdateSlowD
-			.if slowdCount > 2
-				invoke RecycleSlowd
-			.endif
+			; invoke UpdateWater
 
-			invoke GenerateAmbient
-			invoke UpdateAmbient
-			.if ambiCount > 1
-				invoke RecycleAmbient
-			.endif
+			; invoke GenerateSlowD
+			; invoke UpdateSlowD
+			; .if slowdCount > 2
+			; 	invoke RecycleSlowd
+			; .endif
+
+			; invoke GenerateAmbient
+			; invoke UpdateAmbient
+			; .if ambiCount > 1
+			; 	invoke RecycleAmbient
+			; .endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret

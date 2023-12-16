@@ -145,15 +145,34 @@
     <Image Include="source\ambient64.bmp" />
     <Image Include="source\ambient64_mask.bmp" />
     <Image Include="source\background.bmp" />
+    <Image Include="source\docks64.bmp" />
+    <Image Include="source\docks64_mask.bmp" />
+    <Image Include="source\effects128.bmp" />
+    <Image Include="source\effects128_mask.bmp" />
+    <Image Include="source\enemy128.bmp" />
+    <Image Include="source\enemy128_mask.bmp" />
     <Image Include="source\favicon-48x48.ico" />
+    <Image Include="source\interact64.bmp" />
+    <Image Include="source\interact64_mask.bmp" />
+    <Image Include="source\interface24.bmp" />
+    <Image Include="source\interface24_mask.bmp" />
+    <Image Include="source\island1280.bmp" />
+    <Image Include="source\island1280_mask.bmp" />
+    <Image Include="source\objects32.bmp" />
+    <Image Include="source\objects32_mask.bmp" />
     <Image Include="source\objects64.bmp" />
     <Image Include="source\objects64_mask.bmp" />
     <Image Include="source\player64.bmp" />
     <Image Include="source\player64_mask.bmp" />
+    <Image Include="source\ripple96.bmp" />
+    <Image Include="source\sandbar256.bmp" />
+    <Image Include="source\sandbar256_mask.bmp" />
     <Image Include="source\slowdown64.bmp" />
     <Image Include="source\slowdown64_mask.bmp" />
     <Image Include="source\surfboard64.bmp" />
     <Image Include="source\surfboard64_mask.bmp" />
+    <Image Include="source\surfer64.bmp" />
+    <Image Include="source\surfer64_mask.bmp" />
     <Image Include="source\water768.bmp" />
   </ItemGroup>
   <ItemGroup>

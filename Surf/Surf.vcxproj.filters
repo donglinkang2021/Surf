@@ -69,6 +69,63 @@
     <Image Include="source\objects64_mask.bmp">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="source\interact64.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\interact64_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\objects32.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\objects32_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\docks64.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\docks64_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\effects128.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\effects128_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\enemy128.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\enemy128_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\interface24.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\interface24_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\island1280.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\island1280_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\ripple96.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\sandbar256.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\sandbar256_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\surfer64.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="source\surfer64_mask.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="resource.inc">
