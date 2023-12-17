@@ -134,7 +134,7 @@ rand	proto C
 		selectH dd ?	;位图的选择高度
 		flag dd ?	;位图的展示方式
 	ITEMBMP ends
-	items ITEMBMP 5120 dup(<?,?,?,?,?,?>)
+	items ITEMBMP 1024 dup(<?,?,?,?,?,?>)
 
 	Slowdown struct
 		x dd ?			; 初始在屏幕中的x位置
@@ -165,6 +165,16 @@ rand	proto C
 		frame dd ?		; 0~3 4个frame可以选择
 	Interact ends
 	intera Interact 4 dup(<?,?,?,?,?,?>)
+
+	Surfer struct
+		x dd ?			; 初始在屏幕中的x位置
+		y dd ?			; 初始在屏幕中的y位置
+		w dd ? 			; 在屏幕中绘制的w
+		h dd ? 			; 在屏幕中绘制的h
+		role dd ?		; 0~8  9个role可以选择
+		action dd ?		; 0~2  3个action可以选择
+	Surfer ends
+	npc Surfer 4 dup(<?,?,?,?,?,?>)
 	
 .code
 
@@ -626,17 +636,17 @@ rand	proto C
 		add eax, speed.x
 		add ecx, speed.y
 		; 循环恢复
-		cmp eax, -752 ; x0 - 768 = 16 - 768
+		cmp eax, -1264 ; x0 - 1280 = 16 - 1280
 		jg Update1
 		mov eax, 16
 		Update1:
-		cmp eax, 784 ; x0 + 768 = 16 + 768
+		cmp eax, 1296 ; x0 + 1280 = 16 + 1280
 		jl Update2
 		mov eax, 16
 		Update2:
-		cmp ecx, -852 ; y0 - 768 = -84 - 768
+		cmp ecx, -760 ; y0 - 768 = 8 - 768
 		jg Update3
-		mov ecx, -84
+		mov ecx, 8
 		Update3:
 		mov water.x, eax 
 		mov water.y, ecx
@@ -688,7 +698,7 @@ rand	proto C
 		; .while esi < 3 ; 生成3个
 			invoke GetRandPosX
 			mov (Slowdown PTR [edi]).x, eax
-			mov eax, 700
+			mov eax, 800
 			mov (Slowdown PTR [edi]).y, eax
 			mov eax, 64
 			mov (Slowdown PTR [edi]).w, eax
@@ -827,7 +837,7 @@ rand	proto C
 		; 生成一个ambient
 		invoke GetRandPosX
 		mov (Ambient PTR [edi]).x, eax
-		mov eax, 700
+		mov eax, 800
 		mov (Ambient PTR [edi]).y, eax
 		mov eax, 64
 		mov (Ambient PTR [edi]).w, eax
@@ -970,7 +980,7 @@ rand	proto C
 		; 生成一个interact
 		invoke GetRandPosX
 		mov (Interact PTR [edi]).x, eax
-		mov eax, 700
+		mov eax, 800
 		mov (Interact PTR [edi]).y, eax
 		mov eax, 64
 		mov (Interact PTR [edi]).w, eax
@@ -1140,9 +1150,9 @@ rand	proto C
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
 			; invoke RenderTest
 			invoke RenderWater
-			invoke RenderAmbient
-			invoke RenderSlowd
-			invoke RenderInteract
+			; invoke RenderAmbient
+			; invoke RenderSlowd
+			; invoke RenderInteract
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -1153,23 +1163,23 @@ rand	proto C
 
 			invoke UpdateWater
 
-			invoke GenerateSlowD
-			invoke UpdateSlowD
-			.if slowdCount > 2
-				invoke RecycleSlowd
-			.endif
+			; invoke GenerateSlowD
+			; invoke UpdateSlowD
+			; .if slowdCount > 2
+			; 	invoke RecycleSlowd
+			; .endif
 
-			invoke GenerateAmbient
-			invoke UpdateAmbient
-			.if ambiCount > 1
-				invoke RecycleAmbient
-			.endif
+			; invoke GenerateAmbient
+			; invoke UpdateAmbient
+			; .if ambiCount > 1
+			; 	invoke RecycleAmbient
+			; .endif
 
-			invoke GenerateInteract
-			invoke UpdateInteract
-			.if interCount > 1
-				invoke RecycleInteract
-			.endif
+			; invoke GenerateInteract
+			; invoke UpdateInteract
+			; .if interCount > 1
+			; 	invoke RecycleInteract
+			; .endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
