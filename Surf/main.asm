@@ -19,9 +19,11 @@ rand	proto C
 	AppName      db "Surf",0
 
 .data
-	stRect RECT <0,0,0,0>;客户窗口的大小，right代表长，bottom代表高
+	PaintFlag dword 0		;绘制哪个页面的标志
+	stRect RECT <0,0,0,0>	;客户窗口的大小，right代表长，bottom代表高
 	freshTime dword 16		;刷新时间，以毫秒为单位 帧率60
 	aniTimer dword 0		;动画计时器，用于控制动画的刷新速度
+	curTurn dword 0			;开始界面动画的转向
 
 	itemsCount dd 0	;当前已经加载的图片的数量
 
@@ -140,7 +142,7 @@ rand	proto C
 		selectH dd ?	;位图的选择高度
 		flag dd ?	;位图的展示方式
 	ITEMBMP ends
-	items ITEMBMP 1024 dup(<?,?,?,?,?,?>)
+	items ITEMBMP 1024 dup(<?,?,?,?,?,?,?,?,?,?>)
 
 	Slowdown struct
 		x dd ?			; 初始在屏幕中的x位置
@@ -454,6 +456,9 @@ rand	proto C
 				mov eax, 0
 				mov surfer.role, eax
 			.endif
+		.elseif wParam==VK_S || wParam==VK_DOWN
+			mov eax, 1
+			mov PaintFlag, eax
 		.endif
 		xor eax, eax
 		ret
@@ -1330,6 +1335,134 @@ rand	proto C
 	RenderTest ENDP
 	
 	;------------------------------------------
+	;RenderBegin - 游戏开始界面
+	; @param
+	; @return void
+	;------------------------------------------
+	RenderBegin PROC uses eax ebx ecx edx esi edi
+		mov edi, surfer.action
+		shl edi, 6
+		mov esi, surfer.surfBframe
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpSurfBM64, 608, 245, 96, 96, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpSurfB64, 608, 245, 96, 96, edi, esi, 64, 64, SRCPAINT
+		mov esi, surfer.role
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpPlayerM64, 608, 245, 96, 96, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpPlayer64, 608, 245, 96, 96, edi, esi, 64, 64, SRCPAINT
+
+		; 左侧
+		mov edi, 3
+		shl edi, 6
+		mov esi, surfer.surfBframe
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpSurfBM64, 552, 260, 64, 64, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpSurfB64, 552, 260, 64, 64, edi, esi, 64, 64, SRCPAINT
+		mov esi, surfer.role
+		.if esi == 0
+			mov esi, 8
+		.else
+			dec esi
+		.endif
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpPlayerM64, 552, 260, 64, 64, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpPlayer64, 552, 260, 64, 64, edi, esi, 64, 64, SRCPAINT
+
+		; 左左侧
+		mov edi, 3
+		shl edi, 6
+		mov esi, surfer.surfBframe
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpSurfBM64, 517, 268, 48, 48, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpSurfB64, 517, 268, 48, 48, edi, esi, 64, 64, SRCPAINT
+		mov esi, surfer.role
+		.if esi == 0
+			mov esi, 7
+		.elseif esi == 1
+			mov esi, 8
+		.else
+			dec esi
+			dec esi
+		.endif
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpPlayerM64, 517, 268, 48, 48, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpPlayer64, 517, 268, 48, 48, edi, esi, 64, 64, SRCPAINT
+
+		; 右侧
+		mov esi, surfer.surfBframe
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpSurfBM64, 696, 260, 64, 64, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpSurfB64, 696, 260, 64, 64, edi, esi, 64, 64, SRCPAINT
+		mov esi, surfer.role
+		.if esi == 8
+			mov esi, 0
+		.else
+			inc esi
+		.endif
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpPlayerM64, 696, 260, 64, 64, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpPlayer64, 696, 260, 64, 64, edi, esi, 64, 64, SRCPAINT
+
+		; 右右侧
+		mov edi, 3
+		shl edi, 6
+		mov esi, surfer.surfBframe
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpSurfBM64, 748, 268, 48, 48, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpSurfB64, 748, 268, 48, 48, edi, esi, 64, 64, SRCPAINT
+		mov esi, surfer.role
+		.if esi == 8
+			mov esi, 1
+		.elseif esi == 7
+			mov esi, 0
+		.else
+			inc esi
+			inc esi
+		.endif
+		shl esi, 6
+		invoke Bmp2Buffer, hBmpPlayerM64, 748, 268, 48, 48, edi, esi, 64, 64, SRCAND
+		invoke Bmp2Buffer, hBmpPlayer64, 748, 268, 48, 48, edi, esi, 64, 64, SRCPAINT
+
+
+
+		xor eax, eax
+		ret
+	RenderBegin ENDP
+
+	;------------------------------------------
+	;UpdateBegin - 刷新游戏开始界面
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateBegin PROC uses eax ebx ecx edx esi edi
+		mov ecx, surfer.action
+		mov edx, 0			;被除数的高32位
+		mov eax, aniTimer 	;被除数的低32位
+		mov ebx, 8			;除数
+		div ebx
+		cmp edx, 0
+		jne UpdateBeginEnd
+		mov eax, curTurn
+		.if eax == 0
+			inc ecx
+			.if ecx == 5
+				mov eax, 1
+				mov curTurn, eax
+			.endif
+		.elseif eax == 1
+			dec ecx
+			.if ecx == 1
+				mov eax, 0
+				mov curTurn, eax
+			.endif
+		.endif
+		UpdateBeginEnd:
+		mov surfer.action, ecx
+		xor eax, eax
+		ret
+	UpdateBegin ENDP
+
+	;------------------------------------------
 	; WndProc - Window procedure
 	; @param hWnd:HWND
 	; @param uMsg:UINT
@@ -1347,49 +1480,72 @@ rand	proto C
 			invoke GetClientRect, hWnd, addr stRect
 			invoke SetTimer,hWnd,1,freshTime,NULL ; 开始计时
 		.elseif uMsg==WM_KEYDOWN
-			invoke PlayerAction, wParam
-			invoke PlayerRole, wParam
+			mov eax, PaintFlag
+			.if eax == 0
+				; 控制游戏开始界面
+				invoke PlayerRole, wParam
+			.elseif eax == 1
+				; 控制游戏界面
+				invoke PlayerAction, wParam
+			.endif			
 		.elseif uMsg == WM_PAINT
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
-			; invoke RenderTest
-			invoke RenderWater
-			invoke RenderAmbient
-			invoke RenderSlowd
-			invoke RenderInteract
-			invoke RenderNPC
-			invoke RenderSurfer
+
+			mov eax, PaintFlag
+			.if eax == 0
+				; 绘制游戏开始界面
+				; invoke RenderTest
+				invoke RenderBegin
+			.elseif eax == 1
+				; 绘制游戏界面
+				invoke RenderWater
+				invoke RenderAmbient
+				invoke RenderSlowd
+				invoke RenderInteract
+				invoke RenderNPC
+				invoke RenderSurfer
+			.endif
+
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
 			invoke InvalidateRect,hWnd,NULL,FALSE
-			invoke UpdateSpeed
 			invoke UpdateAniTimer
-			invoke UpdateSurfBoard
+			mov eax, PaintFlag
+			.if eax == 0
+				; 刷新游戏开始界面
+				invoke UpdateBegin
+				invoke UpdateSurfBoard
+			.elseif eax == 1
+				; 刷新游戏界面
+				invoke UpdateSpeed
+				invoke UpdateSurfBoard
+				invoke UpdateWater
 
-			invoke UpdateWater
+				invoke GenerateSlowD
+				invoke UpdateSlowD
+				.if slowdCount > 2
+					invoke RecycleSlowd
+				.endif
 
-			invoke GenerateSlowD
-			invoke UpdateSlowD
-			.if slowdCount > 2
-				invoke RecycleSlowd
+				invoke GenerateAmbient
+				invoke UpdateAmbient
+				.if ambiCount > 1
+					invoke RecycleAmbient
+				.endif
+
+				invoke GenerateInteract
+				invoke UpdateInteract
+				.if interCount > 1
+					invoke RecycleInteract
+				.endif
+
+				invoke GenerateNPC
+				invoke UpdateNPC
+				.if npcCount > 1
+					invoke RecycleNPC
+				.endif
 			.endif
-
-			invoke GenerateAmbient
-			invoke UpdateAmbient
-			.if ambiCount > 1
-				invoke RecycleAmbient
-			.endif
-
-			invoke GenerateInteract
-			invoke UpdateInteract
-			.if interCount > 1
-				invoke RecycleInteract
-			.endif
-
-			invoke GenerateNPC
-			invoke UpdateNPC
-			.if npcCount > 1
-				invoke RecycleNPC
-			.endif
+			
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
