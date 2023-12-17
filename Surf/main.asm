@@ -39,6 +39,7 @@ rand	proto C
 		y dd ?
 	RelSpeed ends
 	speed RelSpeed <0,0>
+	npcSpeed RelSpeed <0,0>
 
 	Player struct
 		x dd ?			; 初始在屏幕中的x位置
@@ -66,7 +67,7 @@ rand	proto C
 	; 2 起飞 翻滚开始动作
 	; 3 落水
 	; 4 站着
-	player_state dword 2
+	player_state dword 0
 
 	; 记录生成的slowdown的数量
 	slowdCount dd 0
@@ -82,6 +83,11 @@ rand	proto C
 	interCount dd 0
 	interInterval dd 20 ; 最开始时的生成间隔，40差不多应该，之后的生成间隔为随机数
 	MAXINTER dd 1 ; 最多生成的interact的数量
+
+	; 记录生成的npc的数量
+	npcCount dd 0
+	npcInterval dd 20 ; 最开始时的生成间隔，40差不多应该，之后的生成间隔为随机数
+	MAXNPC dd 1 ; 最多生成的npc的数量
 
 .data?
 	hInstance dword ? 	;程序的句柄
@@ -166,15 +172,15 @@ rand	proto C
 	Interact ends
 	intera Interact 4 dup(<?,?,?,?,?,?>)
 
-	Surfer struct
+	NPC struct
 		x dd ?			; 初始在屏幕中的x位置
 		y dd ?			; 初始在屏幕中的y位置
 		w dd ? 			; 在屏幕中绘制的w
 		h dd ? 			; 在屏幕中绘制的h
 		role dd ?		; 0~8  9个role可以选择
 		action dd ?		; 0~2  3个action可以选择
-	Surfer ends
-	npc Surfer 4 dup(<?,?,?,?,?,?>)
+	NPC ends
+	npc NPC 4 dup(<?,?,?,?,?,?>)
 	
 .code
 
@@ -680,12 +686,14 @@ rand	proto C
 	; @return void
 	;------------------------------------------
 	GenerateSlowD PROC uses eax ebx ecx edx esi edi
+		mov eax, surfer.action
+		cmp eax, 0
+		je GenerateSlowdRet
 		mov eax, slowdCount
 		cmp eax, MAXSLOWD
 		jg GenerateSlowdRet
-		cmp surfer.action, 0
-		je GenerateSlowdRet
-		cmp slowdInterval, 0
+		mov eax, slowdInterval
+		cmp eax, 0
 		jne GenerateSlowdEnd
 		; 获得最新的一个Slowd
 		mov edi, offset slowd
@@ -806,7 +814,8 @@ rand	proto C
 			cmp eax, 0
 			jg RecycleSlowdEnd
 			; 开始回收，即重新生成
-			mov (Slowdown PTR [edi]).y, 700
+			mov eax, 700
+			mov (Slowdown PTR [edi]).y, eax
 			invoke GetRandPosX
 			mov (Slowdown PTR [edi]).x, eax
 			RecycleSlowdEnd:
@@ -823,10 +832,14 @@ rand	proto C
 	; @return void
 	;------------------------------------------
 	GenerateAmbient PROC uses eax ebx ecx edx esi edi
+		mov eax, surfer.action
+		cmp eax, 0
+		je GenerateAmbientRet
 		mov eax, ambiCount
 		cmp eax, MAXAMBI
 		jg GenerateAmbientRet
-		cmp ambiInterval, 0
+		mov eax, ambiInterval
+		cmp eax, 0
 		jne GenerateAmbientEnd
 		; 获得最新的一个Ambient
 		mov edi, offset ambi
@@ -945,7 +958,8 @@ rand	proto C
 			cmp eax, 0
 			jg RecycleAmbientEnd
 			; 开始回收，即重新生成
-			mov (Ambient PTR [edi]).y, 700
+			mov eax, 700
+			mov (Ambient PTR [edi]).y, eax
 			invoke GetRandPosX
 			mov (Ambient PTR [edi]).x, eax
 			invoke GetRandom, 0, 3
@@ -966,10 +980,14 @@ rand	proto C
 	; @return void
 	; ------------------------------------------
 	GenerateInteract PROC uses eax ebx ecx edx esi edi
+		mov eax, surfer.action
+		cmp eax, 0
+		je GenerateInteractRet
 		mov eax, interCount
 		cmp eax, MAXINTER
 		jg GenerateInteractRet
-		cmp interInterval, 0
+		mov eax, interInterval
+		cmp eax, 0
 		jne GenerateInteractEnd
 		; 获得最新的一个Interact
 		mov edi, offset intera
@@ -1084,7 +1102,8 @@ rand	proto C
 			cmp eax, 0
 			jg RecycleInteractEnd
 			; 开始回收，即重新生成
-			mov (Interact PTR [edi]).y, 700
+			mov eax, 700
+			mov (Interact PTR [edi]).y, eax
 			invoke GetRandPosX
 			mov (Interact PTR [edi]).x, eax
 			invoke GetRandom, 0, 7
@@ -1098,6 +1117,190 @@ rand	proto C
 		xor eax,eax
 		ret
 	RecycleInteract ENDP
+
+	;------------------------------------------
+	; GenerateNPC - 生成NPC
+	; @param
+	; @return void
+	;------------------------------------------
+	GenerateNPC PROC uses eax ebx ecx edx esi edi
+		mov eax, surfer.action
+		cmp eax, 0
+		je GenerateNPCRet
+		mov eax, npcCount
+		cmp eax, MAXNPC
+		jg GenerateNPCRet
+		mov eax, npcInterval
+		cmp eax, 0
+		jne GenerateNPCEnd
+		; 获得最新的一个NPC
+		mov edi, offset npc
+		mov esi, npcCount
+		imul esi, TYPE NPC
+		add edi, esi
+
+		; 生成一个NPC
+		invoke GetRandPosX
+		mov (NPC PTR [edi]).x, eax
+		mov eax, 30
+		mov (NPC PTR [edi]).y, eax
+		mov eax, 64
+		mov (NPC PTR [edi]).w, eax
+		mov eax, 64
+		mov (NPC PTR [edi]).h, eax
+		invoke GetRandom, 0, 8
+		mov (NPC PTR [edi]).role, eax
+		invoke GetRandom, 0, 1
+		mov (NPC PTR [edi]).action, eax
+		inc npcCount
+
+		invoke GetRandom, 20, 30
+		mov npcInterval, eax
+		GenerateNPCEnd:
+			dec npcInterval
+		GenerateNPCRet:
+			xor eax,eax
+			ret
+	GenerateNPC ENDP
+
+	;------------------------------------------
+	; UpdateNPC - 更新NPC的位置
+	; @param
+	; @return void
+	;------------------------------------------
+	UpdateNPC PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset npc
+		mov esi, 0
+		.while esi < npcCount
+			; 获得循环的action
+			invoke GetRandom, 60, 100
+			mov ebx, eax
+			mov ecx, (NPC PTR [edi]).action
+			mov edx, 0			;被除数的高32位
+			mov eax, aniTimer 	;被除数的低32位
+			mov ebx, 24			
+			div ebx
+			cmp edx, 0
+			jne UpdateNPCEnd
+			inc ecx
+			cmp ecx, 2			; 2帧
+			jl UpdateNPCEnd
+			mov ecx, 0
+			UpdateNPCEnd:
+			mov (NPC PTR [edi]).action, ecx 
+
+			; 更改npc的速度
+			mov eax, 0
+			mov edx, 0
+			.if ecx == 0
+				add eax, 2
+				sub edx, 4
+			.elseif ecx == 1
+				sub eax, 2
+				sub edx, 4
+			.endif
+			mov npcSpeed.x, eax
+			mov npcSpeed.y, edx
+
+			; 更新位置
+			mov eax, (NPC PTR [edi]).x
+			mov ecx, (NPC PTR [edi]).y
+			add eax, speed.x
+			add ecx, speed.y
+			sub eax, npcSpeed.x
+			sub ecx, npcSpeed.y
+			mov (NPC PTR [edi]).x, eax
+			mov (NPC PTR [edi]).y, ecx
+
+			add edi, TYPE NPC
+			inc esi
+		.endw
+		xor eax, eax
+		ret
+	UpdateNPC ENDP
+
+
+	;------------------------------------------
+	; RenderNPC - 绘制NPC
+	; @param
+	; @return void
+	;------------------------------------------
+	RenderNPC PROC uses eax ebx ecx edx esi edi 
+		mov edi, offset npc
+		mov esi, 0
+		; 暂时先只是加载一张图片
+		.while esi < npcCount
+			mov eax, (NPC PTR [edi]).role
+			imul eax, 3
+			mov ecx, (NPC PTR [edi]).action
+			add eax, ecx
+			shl eax, 6
+			invoke Bmp2Buffer, hBmpSurferM64, \
+				(NPC PTR [edi]).x, (NPC PTR [edi]).y, \
+				(NPC PTR [edi]).w, (NPC PTR [edi]).h, \
+				eax, 64, \
+				64, 64, \
+				SRCAND
+			invoke Bmp2Buffer, hBmpSurfer64, \
+				(NPC PTR [edi]).x, (NPC PTR [edi]).y, \
+				(NPC PTR [edi]).w, (NPC PTR [edi]).h, \
+				eax, 64, \
+				64, 64, \
+				SRCPAINT
+			invoke Bmp2Buffer, hBmpSurferM64, \
+				(NPC PTR [edi]).x, (NPC PTR [edi]).y, \
+				(NPC PTR [edi]).w, (NPC PTR [edi]).h, \
+				eax, 0, \
+				64, 64, \
+				SRCAND
+			invoke Bmp2Buffer, hBmpSurfer64, \
+				(NPC PTR [edi]).x, (NPC PTR [edi]).y, \
+				(NPC PTR [edi]).w, (NPC PTR [edi]).h, \
+				eax, 0, \
+				64, 64, \
+				SRCPAINT
+			add edi, TYPE NPC
+			inc esi
+		.endw
+		xor eax, eax
+		ret
+	RenderNPC ENDP
+
+	;------------------------------------------
+	; RecycleNPC - 回收NPC
+	; @param
+	; @return void
+	;------------------------------------------
+	RecycleNPC PROC uses eax ebx ecx edx esi edi
+		mov edi, offset npc
+		xor esi, esi
+		.while esi < npcCount
+			mov eax, (NPC PTR [edi]).y
+			add eax, 64 ; 64是图片的高度
+			cmp eax, 0
+			jg RecycleNPCEnd
+			; 开始回收，即重新生成
+			invoke GetRandom, 0, 2
+			.if eax == 0
+				mov eax, 30		;放在屏幕上面
+			.else
+				mov eax, 800	;放在屏幕下面
+			.endif
+			mov (NPC PTR [edi]).y, eax
+			invoke GetRandPosX
+			mov (NPC PTR [edi]).x, eax
+			invoke GetRandom, 0, 8
+			mov (NPC PTR [edi]).role, eax
+			invoke GetRandom, 0, 1
+			mov (NPC PTR [edi]).action, eax
+			RecycleNPCEnd:
+			inc esi
+			add edi, TYPE NPC
+		.endw
+		xor eax,eax
+		ret
+	RecycleNPC ENDP
+	
 
 	;------------------------------------------
 	; RenderTest - 测试用
@@ -1150,9 +1353,10 @@ rand	proto C
 			invoke Bmp2Buffer, hBmpBack, 0, 0, stRect.right, stRect.bottom, 0, 0, stRect.right, stRect.bottom, SRCCOPY
 			; invoke RenderTest
 			invoke RenderWater
-			; invoke RenderAmbient
-			; invoke RenderSlowd
-			; invoke RenderInteract
+			invoke RenderAmbient
+			invoke RenderSlowd
+			invoke RenderInteract
+			invoke RenderNPC
 			invoke RenderSurfer
 			invoke Buffer2Window
 		.elseif uMsg ==WM_TIMER ;刷新
@@ -1163,23 +1367,29 @@ rand	proto C
 
 			invoke UpdateWater
 
-			; invoke GenerateSlowD
-			; invoke UpdateSlowD
-			; .if slowdCount > 2
-			; 	invoke RecycleSlowd
-			; .endif
+			invoke GenerateSlowD
+			invoke UpdateSlowD
+			.if slowdCount > 2
+				invoke RecycleSlowd
+			.endif
 
-			; invoke GenerateAmbient
-			; invoke UpdateAmbient
-			; .if ambiCount > 1
-			; 	invoke RecycleAmbient
-			; .endif
+			invoke GenerateAmbient
+			invoke UpdateAmbient
+			.if ambiCount > 1
+				invoke RecycleAmbient
+			.endif
 
-			; invoke GenerateInteract
-			; invoke UpdateInteract
-			; .if interCount > 1
-			; 	invoke RecycleInteract
-			; .endif
+			invoke GenerateInteract
+			invoke UpdateInteract
+			.if interCount > 1
+				invoke RecycleInteract
+			.endif
+
+			invoke GenerateNPC
+			invoke UpdateNPC
+			.if npcCount > 1
+				invoke RecycleNPC
+			.endif
 		.else
 			invoke DefWindowProc, hWnd, uMsg, wParam, lParam		
 			ret
