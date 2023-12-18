@@ -14,3 +14,8 @@
 Use `masm32` to code Edge Surf. 
 
 > This is a project for my course: Assembly Language Programming. And there are many details in the original Edge Surf Game that I didn't implement.
+
+## How to play 🎮
+
+- Download the release version.
+- Click the `Surf.exe` file and play it.
